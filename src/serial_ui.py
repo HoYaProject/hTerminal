@@ -1,3 +1,5 @@
+from PyQt5.QtCore import QIODevice
+from PyQt5.QtSerialPort import QSerialPort
 from PyQt5.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -11,9 +13,14 @@ from PyQt5.QtWidgets import (
 )
 
 
+MAX_PORT: int = 200
+
+
 class Serial_UI(QWidget):
     def __init__(self):
         super().__init__()
+
+        self.serial = QSerialPort()
 
         # Settings
         self.port_cmb = QComboBox()
@@ -34,10 +41,14 @@ class Serial_UI(QWidget):
         # Settings
         port_label = QLabel("Port")
         port_label.setFixedWidth(70)
+        self.scan_port()
 
         baudrate_label = QLabel("Baudrate")
         baudrate_label.setFixedWidth(70)
+        self.scan_baudrate()
 
+        self.connect_btn.setCheckable(True)
+        self.connect_btn.clicked.connect(self.connect)
         self.connect_btn.setFixedWidth(80)
         self.connect_btn.setFixedHeight(50)
 
@@ -74,3 +85,27 @@ class Serial_UI(QWidget):
         vlayout.addWidget(tx_group)
 
         self.setLayout(vlayout)
+
+    def scan_port(self):
+        for i in range(MAX_PORT):
+            port_name: str = f"COM{i + 1}"
+            self.serial.setPortName(port_name)
+            if self.serial.open(QIODevice.ReadWrite):
+                self.port_cmb.addItem(port_name)
+                self.serial.close()
+
+    def scan_baudrate(self):
+        baudrates: list(str) = ["9600", "115200"]
+        self.baudrate_cmb.addItems(baudrates)
+        self.baudrate_cmb.setCurrentIndex(1)
+
+    def connect(self):
+        if self.connect_btn.isChecked():
+            print("Connect")
+            self.serial.setPortName(self.port_cmb.currentText())
+            self.serial.setBaudRate(int(self.baudrate_cmb.currentText()))
+            self.serial.open(QIODevice.ReadWrite)
+            self.connect_btn.setText("Disconnect")
+        else:
+            self.serial.close()
+            self.connect_btn.setText("Connect")

@@ -5,12 +5,9 @@ from PyQt5.QtCore import QSettings
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QApplication,
-    QHBoxLayout,
     QVBoxLayout,
     QMainWindow,
     QWidget,
-    QGroupBox,
-    QLabel,
 )
 
 from serial_ui import Serial_UI
@@ -71,6 +68,6 @@ class HTerminal(QMainWindow):
 
 
 if __name__ == "__main__":
-    APP = QApplication(sys.argv)
+    app = QApplication(sys.argv)
     ex = HTerminal()
-    sys.exit(APP.exec_())
+    sys.exit(app.exec())
