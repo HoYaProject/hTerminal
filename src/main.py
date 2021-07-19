@@ -3,7 +3,17 @@ import os
 
 from PyQt5.QtCore import QSettings
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
+from PyQt5.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QVBoxLayout,
+    QMainWindow,
+    QWidget,
+    QGroupBox,
+    QLabel,
+)
+
+from serial_ui import Serial_UI
 
 
 MAJOR_VERSION = 1
@@ -18,15 +28,21 @@ class HTerminal(QMainWindow):
         self.settings = QSettings("ChameleoN", "hTerminal")
 
         self.init_ui()
+        self.load_settings()
 
     def init_ui(self):
-        # Main UI
+        # Main UI ##############################################################
+        vlayout = QVBoxLayout()
+        vlayout.addWidget(Serial_UI())
+        central_widget = QWidget()
+        central_widget.setLayout(vlayout)
+        self.setCentralWidget(central_widget)
+
         self.setWindowIcon(QIcon(self.resource_path("./resource/favicon.ico")))
         self.setWindowTitle(
             "hTerminal v{}.{}.{}".format(MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION)
         )
         self.show()
-        self.load_settings()
 
     # Utility ##################################################################
     def closeEvent(self, event):
