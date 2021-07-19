@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QIODevice
+from PyQt5.QtCore import QSettings, QIODevice
 from PyQt5.QtSerialPort import QSerialPort
 from PyQt5.QtWidgets import (
     QWidget,
@@ -20,6 +20,8 @@ class Serial_UI(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.settings = QSettings("ChameleoN", "hTerminal")
+
         self.serial = QSerialPort()
 
         # Settings
@@ -35,6 +37,7 @@ class Serial_UI(QWidget):
         self.tx_btn = QPushButton("Send")
 
         self.init_ui()
+        self.load_settings()
 
     def init_ui(self):
         # Wiget ################################################################
@@ -101,7 +104,6 @@ class Serial_UI(QWidget):
 
     def connect(self):
         if self.connect_btn.isChecked():
-            print("Connect")
             self.serial.setPortName(self.port_cmb.currentText())
             self.serial.setBaudRate(int(self.baudrate_cmb.currentText()))
             self.serial.open(QIODevice.ReadWrite)
@@ -109,3 +111,17 @@ class Serial_UI(QWidget):
         else:
             self.serial.close()
             self.connect_btn.setText("Connect")
+
+    def save_settings(self):
+        self.settings.setValue("port_name", self.port_cmb.currentText())
+        self.settings.setValue("baudrate", self.baudrate_cmb.currentText())
+
+    def load_settings(self):
+        if self.settings.contains("port_name"):
+            self.port_cmb.setCurrentIndex(
+                self.port_cmb.findText(self.settings.value("port_name"))
+            )
+        if self.settings.contains("baudrate"):
+            self.baudrate_cmb.setCurrentIndex(
+                self.baudrate_cmb.findText(self.settings.value("baudrate"))
+            )
