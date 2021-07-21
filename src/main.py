@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
+from color import COLOR_BG, COLOR_FG
 from serial_ui import Serial_UI
 
 
@@ -28,7 +29,6 @@ class HTerminal(QMainWindow):
         self.load_settings()
 
     def init_ui(self):
-        # Main UI ##############################################################
         vlayout = QVBoxLayout()
         vlayout.addWidget(Serial_UI())
         central_widget = QWidget()
@@ -39,6 +39,7 @@ class HTerminal(QMainWindow):
         self.setWindowTitle(
             "hTerminal v{}.{}.{}".format(MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION)
         )
+        self.setStyleSheet(f"color: {COLOR_FG}; background-color: {COLOR_BG};")
         self.show()
 
     # Utility ##################################################################
