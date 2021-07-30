@@ -12,8 +12,10 @@ class HLogger:
     def logging(self, msg):
         for char in msg:
             if char == "\n":
-                if any(word in DEBUG_LIST for word in msg):
+                if any(word in self._msg for word in DEBUG_LIST):
                     self._log.setTextColor(QColor(240, 198, 116))
+                else:
+                    self._log.setTextColor(QColor(197, 200, 198))
                 self._log.append(self._msg)
                 self._msg = ""
             elif char == "\r":

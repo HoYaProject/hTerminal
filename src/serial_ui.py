@@ -1,5 +1,9 @@
-from PyQt5.QtCore import QSettings, QIODevice
+import sys
+import os
+
+from PyQt5.QtCore import QSettings, QIODevice, QSize
 from PyQt5.QtSerialPort import QSerialPort
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -38,9 +42,11 @@ class Serial_UI(QWidget):
         # Settings
         self.port_cmb = QComboBox()
         self.baudrate_cmb = QComboBox()
+        self.refresh_btn = QPushButton()
         self.connect_btn = QPushButton("Connect")
 
         # Logging
+        self.log_clear_btn = QPushButton("Clear")
         self.log_te = QTextEdit()
         self.logger = HLogger(self.log_te)
 
@@ -68,6 +74,12 @@ class Serial_UI(QWidget):
         self.baudrate_cmb.setStyleSheet(f"border: 2px solid {COLOR_LIGHT_BLACK};")
         self.scan_baudrate()
 
+        self.refresh_btn.clicked.connect(self.scan_port)
+        self.refresh_btn.setIcon(QIcon(self.resource_path("./resource/refresh.png")))
+        self.refresh_btn.setStyleSheet(
+            f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
+        )
+
         self.connect_btn.setCheckable(True)
         self.connect_btn.clicked.connect(self.connect)
         self.connect_btn.setFixedWidth(80)
@@ -77,9 +89,15 @@ class Serial_UI(QWidget):
         )
 
         # Logging
+        self.log_clear_btn.clicked.connect(self.log_clear)
+        self.log_clear_btn.setStyleSheet(
+            f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
+        )
+
         self.log_te.setReadOnly(True)
         self.log_te.setFontFamily("consolas")
         self.log_te.setFontPointSize(8)
+        self.log_te.setStyleSheet(f"border: 2px solid {COLOR_LIGHT_BLACK};")
 
         # Tx
         tx_mode_label = QLabel("Mode: String")
@@ -96,17 +114,33 @@ class Serial_UI(QWidget):
         settings_vlayout_1.addWidget(port_label)
         settings_vlayout_1.addWidget(baudrate_label)
 
+        settings_hlayout_1 = QHBoxLayout()
+        settings_hlayout_1.addWidget(self.port_cmb)
+        settings_hlayout_1.setStretchFactor(self.port_cmb, 1)
+        settings_hlayout_1.addWidget(self.refresh_btn)
+
         settings_vlayout_2 = QVBoxLayout()
-        settings_vlayout_2.addWidget(self.port_cmb)
+        settings_vlayout_2.addLayout(settings_hlayout_1)
         settings_vlayout_2.addWidget(self.baudrate_cmb)
 
-        settings_hlayout = QHBoxLayout()
-        settings_hlayout.addLayout(settings_vlayout_1)
-        settings_hlayout.addLayout(settings_vlayout_2)
-        settings_hlayout.addWidget(self.connect_btn)
+        settings_hlayout_2 = QHBoxLayout()
+        settings_hlayout_2.addLayout(settings_vlayout_1)
+        settings_hlayout_2.addLayout(settings_vlayout_2)
+        settings_hlayout_2.addWidget(self.connect_btn)
 
         settings_group = QGroupBox("Settings")
-        settings_group.setLayout(settings_hlayout)
+        settings_group.setLayout(settings_hlayout_2)
+
+        rx_hlayout_1 = QHBoxLayout()
+        rx_hlayout_1.addWidget(self.log_clear_btn)
+        rx_hlayout_1.addStretch(1)
+
+        rx_vlayout_1 = QVBoxLayout()
+        rx_vlayout_1.addLayout(rx_hlayout_1)
+        rx_vlayout_1.addWidget(self.log_te)
+
+        rx_group = QGroupBox("RX")
+        rx_group.setLayout(rx_vlayout_1)
 
         tx_hlayout_1 = QHBoxLayout()
         tx_hlayout_1.addWidget(tx_mode_label)
@@ -124,13 +158,14 @@ class Serial_UI(QWidget):
 
         vlayout = QVBoxLayout()
         vlayout.addWidget(settings_group)
-        vlayout.addWidget(self.log_te)
+        vlayout.addWidget(rx_group)
         vlayout.addWidget(tx_group)
 
         self.setLayout(vlayout)
 
     # Serial ###################################################################
     def scan_port(self):
+        self.port_cmb.clear()
         for i in range(MAX_PORT):
             port_name: str = f"COM{i + 1}"
             self.serial.setPortName(port_name)
@@ -139,6 +174,7 @@ class Serial_UI(QWidget):
                 self.serial.close()
 
     def scan_baudrate(self):
+        self.baudrate_cmb.clear()
         self.baudrate_cmb.addItems(BAUDRATES)
         self.baudrate_cmb.setCurrentIndex(1)
 
@@ -192,16 +228,27 @@ class Serial_UI(QWidget):
                 f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
             )
 
+    def resource_path(self, relative_path):
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
+
     def save_settings(self):
         self.settings.setValue("port_name", self.port_cmb.currentText())
         self.settings.setValue("baudrate", self.baudrate_cmb.currentText())
 
     def load_settings(self):
         if self.settings.contains("port_name"):
-            self.port_cmb.setCurrentIndex(
-                self.port_cmb.findText(self.settings.value("port_name"))
-            )
+            index = self.port_cmb.findText(self.settings.value("port_name"))
+            if index != -1:
+                self.port_cmb.setCurrentIndex(index)
+            else:
+                self.port_cmb.setCurrentIndex(0)
         if self.settings.contains("baudrate"):
-            self.baudrate_cmb.setCurrentIndex(
-                self.baudrate_cmb.findText(self.settings.value("baudrate"))
-            )
+            index = self.baudrate_cmb.findText(self.settings.value("baudrate"))
+            if index != -1:
+                self.baudrate_cmb.setCurrentIndex(index)
+            else:
+                self.baudrate_cmb.setCurrentIndex(0)
