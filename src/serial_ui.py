@@ -67,11 +67,13 @@ class Serial_UI(QWidget):
         port_label = QLabel("Port")
         port_label.setFixedWidth(70)
         self.port_cmb.setStyleSheet(f"border: 2px solid {COLOR_LIGHT_BLACK};")
+        self.port_cmb.setToolTip("Select COM port to connect")
         self.scan_port()
 
         baudrate_label = QLabel("Baudrate")
         baudrate_label.setFixedWidth(70)
         self.baudrate_cmb.setStyleSheet(f"border: 2px solid {COLOR_LIGHT_BLACK};")
+        self.baudrate_cmb.setToolTip("Select baudrate to connect")
         self.scan_baudrate()
 
         self.refresh_btn.clicked.connect(self.scan_port)
@@ -79,6 +81,7 @@ class Serial_UI(QWidget):
         self.refresh_btn.setStyleSheet(
             f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
         )
+        self.refresh_btn.setToolTip("Refresh port list")
 
         self.connect_btn.setCheckable(True)
         self.connect_btn.clicked.connect(self.connect)
@@ -87,12 +90,16 @@ class Serial_UI(QWidget):
         self.connect_btn.setStyleSheet(
             f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
         )
+        self.connect_btn.setToolTip(
+            f"Connect to {self.port_cmb.currentText()} with {self.baudrate_cmb.currentText()}"
+        )
 
         # Logging
         self.log_clear_btn.clicked.connect(self.log_clear)
         self.log_clear_btn.setStyleSheet(
             f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
         )
+        self.log_clear_btn.setToolTip("Clear the log")
 
         self.log_te.setReadOnly(True)
         self.log_te.setFontFamily("consolas")
@@ -104,10 +111,12 @@ class Serial_UI(QWidget):
         self.tx_le.returnPressed.connect(self.send_data)
         # self.tx_le.returnPressed.connect(self.tx_btn.click)
         self.tx_le.setStyleSheet(f"border: 2px solid {COLOR_LIGHT_BLACK};")
+        self.tx_le.setToolTip("Input string to send")
         self.tx_btn.clicked.connect(self.send_data)
         self.tx_btn.setStyleSheet(
             f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
         )
+        self.tx_btn.setToolTip("Send input string")
 
         # Layout --------------------------------------------------------------#
         settings_vlayout_1 = QVBoxLayout()
@@ -185,10 +194,16 @@ class Serial_UI(QWidget):
             self.serial.open(QIODevice.ReadWrite)
             self.enable_ui(True)
             self.connect_btn.setText("Disconnect")
+            self.connect_btn.setToolTip(
+                f"Disconnect from {self.port_cmb.currentText()}"
+            )
         else:
             self.serial.close()
             self.enable_ui(False)
             self.connect_btn.setText("Connect")
+            self.connect_btn.setToolTip(
+                f"Connect to {self.port_cmb.currentText()} with {self.baudrate_cmb.currentText()}"
+            )
 
     def read_data(self):
         data = str(self.serial.readAll(), "utf-8")
