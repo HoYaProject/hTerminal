@@ -43,10 +43,10 @@ class Serial_UI(QWidget):
         self.port_cmb = QComboBox()
         self.baudrate_cmb = QComboBox()
         self.refresh_btn = QPushButton()
-        self.connect_btn = QPushButton("Connect")
+        self.connect_btn = QPushButton("C&onnect")
 
         # Logging
-        self.log_clear_btn = QPushButton("Clear")
+        self.log_clear_btn = QPushButton("&Clear")
         self.log_te = QTextEdit()
         self.logger = HLogger(self.log_te)
 
@@ -193,14 +193,14 @@ class Serial_UI(QWidget):
             self.serial.setBaudRate(int(self.baudrate_cmb.currentText()))
             self.serial.open(QIODevice.ReadWrite)
             self.enable_ui(True)
-            self.connect_btn.setText("Disconnect")
+            self.connect_btn.setText("Disc&onnect")
             self.connect_btn.setToolTip(
                 f"Disconnect from {self.port_cmb.currentText()}"
             )
         else:
             self.serial.close()
             self.enable_ui(False)
-            self.connect_btn.setText("Connect")
+            self.connect_btn.setText("C&onnect")
             self.connect_btn.setToolTip(
                 f"Connect to {self.port_cmb.currentText()} with {self.baudrate_cmb.currentText()}"
             )
