@@ -5,12 +5,13 @@ from PyQt5.QtCore import QSettings
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QApplication,
-    QVBoxLayout,
+    QHBoxLayout,
     QMainWindow,
     QWidget,
 )
 
 from color import COLOR_BG, COLOR_FG
+from hserial import HSerial
 from serial_ui import Serial_UI
 
 
@@ -25,14 +26,16 @@ class HTerminal(QMainWindow):
 
         self.settings = QSettings("ChameleoN", "hTerminal")
 
+        self.serial = HSerial()
+
         self.init_ui()
         self.load_settings()
 
     def init_ui(self):
-        vlayout = QVBoxLayout()
-        vlayout.addWidget(Serial_UI())
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(Serial_UI(self.serial))
         central_widget = QWidget()
-        central_widget.setLayout(vlayout)
+        central_widget.setLayout(hlayout)
         self.setCentralWidget(central_widget)
 
         self.setWindowIcon(QIcon(self.resource_path("./resource/favicon.ico")))
@@ -49,6 +52,7 @@ class HTerminal(QMainWindow):
                 child_widget.save_settings
             ):
                 child_widget.save_settings()
+        self.serial.close()
         super().closeEvent(event)
 
     def resource_path(self, relative_path):

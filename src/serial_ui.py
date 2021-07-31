@@ -1,8 +1,7 @@
 import sys
 import os
 
-from PyQt5.QtCore import QSettings, QIODevice, QSize
-from PyQt5.QtSerialPort import QSerialPort
+from PyQt5.QtCore import QSettings, QIODevice
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QWidget,
@@ -25,19 +24,18 @@ from color import (
 from hlogger import HLogger
 
 
-MAX_PORT: int = 200
 BAUDRATES: list[str] = ["9600", "115200"]
 
 
 class Serial_UI(QWidget):
-    def __init__(self):
+    def __init__(self, serial):
         super().__init__()
 
         # Settings
         self.settings = QSettings("ChameleoN", "hTerminal")
 
         # Serial
-        self.serial = QSerialPort()
+        self._serial = serial
 
         # Settings
         self.port_cmb = QComboBox()
@@ -61,7 +59,7 @@ class Serial_UI(QWidget):
     def init_ui(self):
         # Wiget ---------------------------------------------------------------#
         # Serial
-        self.serial.readyRead.connect(self.read_data)
+        self._serial.readyRead.connect(self.read_data)
 
         # Settings
         port_label = QLabel("Port")
@@ -109,7 +107,6 @@ class Serial_UI(QWidget):
         # Tx
         tx_mode_label = QLabel("Mode: String")
         self.tx_le.returnPressed.connect(self.send_data)
-        # self.tx_le.returnPressed.connect(self.tx_btn.click)
         self.tx_le.setStyleSheet(f"border: 2px solid {COLOR_LIGHT_BLACK};")
         self.tx_le.setToolTip("Input string to send")
         self.tx_btn.clicked.connect(self.send_data)
@@ -175,12 +172,7 @@ class Serial_UI(QWidget):
     # Serial ###################################################################
     def scan_port(self):
         self.port_cmb.clear()
-        for i in range(MAX_PORT):
-            port_name: str = f"COM{i + 1}"
-            self.serial.setPortName(port_name)
-            if self.serial.open(QIODevice.ReadWrite):
-                self.port_cmb.addItem(port_name)
-                self.serial.close()
+        self.port_cmb.addItems(self._serial.scan_port())
 
     def scan_baudrate(self):
         self.baudrate_cmb.clear()
@@ -189,16 +181,16 @@ class Serial_UI(QWidget):
 
     def connect(self):
         if self.connect_btn.isChecked():
-            self.serial.setPortName(self.port_cmb.currentText())
-            self.serial.setBaudRate(int(self.baudrate_cmb.currentText()))
-            self.serial.open(QIODevice.ReadWrite)
-            self.enable_ui(True)
-            self.connect_btn.setText("Disc&onnect")
-            self.connect_btn.setToolTip(
-                f"Disconnect from {self.port_cmb.currentText()}"
-            )
+            if self._serial.connect(
+                self.port_cmb.currentText(), int(self.baudrate_cmb.currentText())
+            ):
+                self.enable_ui(True)
+                self.connect_btn.setText("Disc&onnect")
+                self.connect_btn.setToolTip(
+                    f"Disconnect from {self.port_cmb.currentText()}"
+                )
         else:
-            self.serial.close()
+            self._serial.disconnect()
             self.enable_ui(False)
             self.connect_btn.setText("C&onnect")
             self.connect_btn.setToolTip(
@@ -206,7 +198,7 @@ class Serial_UI(QWidget):
             )
 
     def read_data(self):
-        data = str(self.serial.readAll(), "utf-8")
+        data = str(self._serial.readAll(), "utf-8")
         self.log(data)
 
     def send_data(self):
@@ -215,7 +207,7 @@ class Serial_UI(QWidget):
     def write_data(self):
         self.log("\n")
         data = self.tx_le.text() + "\n"
-        self.serial.write(data.encode("utf-8"))
+        self._serial.write(data.encode("utf-8"))
 
     # Logging ##################################################################
     def log(self, msg):
