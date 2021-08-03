@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
 from color import COLOR_BG, COLOR_FG
 from hserial import HSerial
 from serial_ui import Serial_UI
+from nxp_ui import NXP_UI
 
 
 MAJOR_VERSION = 1
@@ -34,13 +35,16 @@ class HTerminal(QMainWindow):
     def init_ui(self):
         hlayout = QHBoxLayout()
         hlayout.addWidget(Serial_UI(self.serial))
+        hlayout.addWidget(NXP_UI(self.serial))
         central_widget = QWidget()
         central_widget.setLayout(hlayout)
         self.setCentralWidget(central_widget)
 
         self.setWindowIcon(QIcon(self.resource_path("./resource/favicon.ico")))
         self.setWindowTitle(
-            "hTerminal v{}.{}.{}".format(MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION)
+            "hTerminal for NXP v{}.{}.{}".format(
+                MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION
+            )
         )
         self.setStyleSheet(f"color: {COLOR_FG}; background-color: {COLOR_BG};")
         self.show()

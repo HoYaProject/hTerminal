@@ -1,7 +1,7 @@
 import sys
 import os
 
-from PyQt5.QtCore import QSettings, QIODevice
+from PyQt5.QtCore import QSettings
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QWidget,
@@ -36,6 +36,7 @@ class Serial_UI(QWidget):
 
         # Serial
         self._serial = serial
+        self._serial.writeSignal.connect(self.write_done)
 
         # Settings
         self.port_cmb = QComboBox()
@@ -205,9 +206,11 @@ class Serial_UI(QWidget):
         self.write_data()
 
     def write_data(self):
-        self.log("\n")
         data = self.tx_le.text() + "\n"
-        self._serial.write(data.encode("utf-8"))
+        self._serial.write(data)
+
+    def write_done(self):
+        self.log("\n")
 
     # Logging ##################################################################
     def log(self, msg):

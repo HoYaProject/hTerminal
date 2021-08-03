@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QIODevice
+from PyQt5.QtCore import QIODevice, pyqtSignal
 from PyQt5.QtSerialPort import QSerialPort
 
 
@@ -6,10 +6,13 @@ MAX_PORT: int = 200
 
 
 class HSerial(QSerialPort):
+    connectSignal = pyqtSignal(bool)
+    writeSignal = pyqtSignal()
+
     def __init__(self):
         super().__init__()
 
-        self.is_connect = False
+        self._is_connect = False
 
     def scan_port(self) -> list[str]:
         port_list = []
@@ -25,12 +28,18 @@ class HSerial(QSerialPort):
         self.setPortName(port)
         self.setBaudRate(baudrate)
         if self.open(QIODevice.ReadWrite):
-            self.is_connect = True
-        return self.is_connect
+            self._is_connect = True
+        self.connectSignal.emit(self._is_connect)
+        return self._is_connect
 
     def disconnect(self):
-        self.is_connect = False
+        self._is_connect = False
         self.close()
+        self.connectSignal.emit(self._is_connect)
 
     def is_connect(self) -> bool:
-        return self.is_connect
+        return self._is_connect
+
+    def write(self, msg: str):
+        super().write(msg.encode("utf-8"))
+        self.writeSignal.emit()
