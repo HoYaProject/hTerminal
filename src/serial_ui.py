@@ -37,6 +37,7 @@ class Serial_UI(QWidget):
         # Serial
         self._serial = serial
         self._serial.writeSignal.connect(self.write_done)
+        self._serial.readSignal.connect(self.read_data)
 
         # Settings
         self.port_cmb = QComboBox()
@@ -59,9 +60,6 @@ class Serial_UI(QWidget):
 
     def init_ui(self):
         # Wiget ---------------------------------------------------------------#
-        # Serial
-        self._serial.readyRead.connect(self.read_data)
-
         # Settings
         port_label = QLabel("Port")
         port_label.setFixedWidth(70)
@@ -107,10 +105,10 @@ class Serial_UI(QWidget):
 
         # Tx
         tx_mode_label = QLabel("Mode: String")
-        self.tx_le.returnPressed.connect(self.send_data)
+        self.tx_le.returnPressed.connect(self.write_data)
         self.tx_le.setStyleSheet(f"border: 2px solid {COLOR_LIGHT_BLACK};")
         self.tx_le.setToolTip("Input string to send")
-        self.tx_btn.clicked.connect(self.send_data)
+        self.tx_btn.clicked.connect(self.write_data)
         self.tx_btn.setStyleSheet(
             f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
         )
@@ -198,12 +196,8 @@ class Serial_UI(QWidget):
                 f"Connect to {self.port_cmb.currentText()} with {self.baudrate_cmb.currentText()}"
             )
 
-    def read_data(self):
-        data = str(self._serial.readAll(), "utf-8")
+    def read_data(self, data: str):
         self.log(data)
-
-    def send_data(self):
-        self.write_data()
 
     def write_data(self):
         data = self.tx_le.text() + "\n"
@@ -213,7 +207,7 @@ class Serial_UI(QWidget):
         self.log("\n")
 
     # Logging ##################################################################
-    def log(self, msg):
+    def log(self, msg: str):
         self.logger.logging(msg)
 
     def log_clear(self):

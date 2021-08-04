@@ -1,7 +1,8 @@
 from PyQt5.QtGui import QColor
 
-
+GOOD_LIST: list[str] = ["success"]
 DEBUG_LIST: list[str] = ["DBG"]
+BAD_LIST: list[str] = ["error", "fail"]
 
 
 class HLogger:
@@ -9,11 +10,15 @@ class HLogger:
         self._log = log
         self._msg = ""
 
-    def logging(self, msg):
+    def logging(self, msg: str):
         for char in msg:
             if char == "\n":
                 if any(word in self._msg for word in DEBUG_LIST):
                     self._log.setTextColor(QColor(240, 198, 116))
+                elif any(word in self._msg.lower() for word in GOOD_LIST):
+                    self._log.setTextColor(QColor(181, 189, 104))
+                elif any(word in self._msg.lower() for word in BAD_LIST):
+                    self._log.setTextColor(QColor(204, 102, 102))
                 else:
                     self._log.setTextColor(QColor(197, 200, 198))
                 self._log.append(self._msg)

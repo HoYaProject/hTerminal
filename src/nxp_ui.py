@@ -1,26 +1,35 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QGroupBox, QPushButton
-
-
-from color import (
-    COLOR_BG,
-    COLOR_BLACK,
-    COLOR_LIGHT_BLACK,
-    COLOR_WHITE,
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import (
+    QWidget,
+    QHBoxLayout,
+    QVBoxLayout,
+    QGroupBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
 )
+
+from color import COLOR_BLACK, COLOR_LIGHT_BLACK, COLOR_WHITE
 
 
 class NXP_UI(QWidget):
+    _rx_data = ""
+
     def __init__(self, serial):
         super().__init__()
 
         # Serial
         self._serial = serial
         self._serial.connectSignal.connect(self.enable_ui)
+        self._serial.readSignal.connect(self.read_data)
 
         # Control
         self.ctrl_reset_btn = QPushButton("Reset")
         self.ctrl_form_btn = QPushButton("Format")
         self.ctrl_steer_btn = QPushButton("Permit")
+
+        # Node Information
+        self.node_table = QTableWidget()
 
         self.init_ui()
         self.enable_ui(False)
@@ -33,17 +42,43 @@ class NXP_UI(QWidget):
         self.ctrl_reset_btn.setStyleSheet(
             f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
         )
+        self.ctrl_reset_btn.setToolTip("Reset to factory default")
 
         self.ctrl_form_btn.clicked.connect(self.ctrl_form)
         self.ctrl_form_btn.setFixedWidth(80)
         self.ctrl_form_btn.setStyleSheet(
             f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
         )
+        self.ctrl_form_btn.setToolTip("Form a new network")
 
         self.ctrl_steer_btn.clicked.connect(self.ctrl_steer)
         self.ctrl_steer_btn.setFixedWidth(80)
         self.ctrl_steer_btn.setStyleSheet(
             f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
+        )
+        self.ctrl_steer_btn.setToolTip("Permit joining")
+
+        # Node Information
+        self.node_table.setEnabled(False)
+        self.node_table.setMinimumWidth(400)
+        self.node_table.setColumnCount(4)
+        self.node_table.setColumnWidth(0, 160)
+        self.node_table.setColumnWidth(1, 70)
+        self.node_table.setColumnWidth(2, 100)
+        self.node_table.setColumnWidth(3, 50)
+        self.node_table.setHorizontalHeaderLabels(
+            ["IEEE Addr", "Nwk Addr", "Description", "Version"]
+        )
+        self.node_table.horizontalHeader().setStretchLastSection(True)
+        self.node_table.verticalHeader().setDefaultAlignment(Qt.AlignCenter)
+        self.node_table.setStyleSheet(
+            f"color: {COLOR_WHITE}; background-color: {COLOR_BLACK}; gridline-color: {COLOR_LIGHT_BLACK}; QTableCornerButton::section {{background-color: {COLOR_BLACK};}}"
+        )
+        self.node_table.horizontalHeader().setStyleSheet(
+            f"QHeaderView::section {{color: {COLOR_WHITE}; background-color: {COLOR_BLACK}; font: bold; border: 1px solid {COLOR_LIGHT_BLACK};}}"
+        )
+        self.node_table.verticalHeader().setStyleSheet(
+            f"QHeaderView::section {{color: {COLOR_WHITE}; background-color: {COLOR_BLACK}; font: bold; border: 1px solid {COLOR_LIGHT_BLACK};}}"
         )
 
         # Layout --------------------------------------------------------------#
@@ -51,12 +86,20 @@ class NXP_UI(QWidget):
         ctrl_hlayout.addWidget(self.ctrl_reset_btn)
         ctrl_hlayout.addWidget(self.ctrl_form_btn)
         ctrl_hlayout.addWidget(self.ctrl_steer_btn)
+        ctrl_hlayout.addStretch(1)
 
         ctrl_group = QGroupBox("Network Control")
         ctrl_group.setLayout(ctrl_hlayout)
 
+        node_hlayout = QHBoxLayout()
+        node_hlayout.addWidget(self.node_table)
+
+        node_group = QGroupBox("Node information")
+        node_group.setLayout(node_hlayout)
+
         vlayout = QVBoxLayout()
         vlayout.addWidget(ctrl_group)
+        vlayout.addWidget(node_group)
         vlayout.addStretch(1)
 
         self.setLayout(vlayout)
@@ -71,9 +114,86 @@ class NXP_UI(QWidget):
     def ctrl_steer(self):
         self._serial.write("steer\n")
 
+    # Node Information #########################################################
+    def new_node(self, data: str):
+        token = data.split()
+        ieee_addr = token[3].split("-")[0].upper()
+        ieee_addr = ":".join(ieee_addr[i : i + 2] for i in range(0, len(ieee_addr), 2))
+        nwk_addr = token[3].split("-")[1].upper()
+
+        rows = self.node_table.rowCount()
+        is_exist = False
+        for r in range(rows):
+            if self.node_table.item(r, 0).text() == ieee_addr:
+                item = QTableWidgetItem(nwk_addr)
+                item.setTextAlignment(Qt.AlignCenter)
+                self.node_table.setItem(r, 1, item)
+                is_exist = True
+                break
+        if is_exist == False:
+            self.node_table.insertRow(rows)
+            self.set_cell(rows, 0, ieee_addr)
+            self.set_cell(rows, 1, nwk_addr)
+
+    def leave_indication(self, data: str):
+        token = data.split()
+        ieee_addr = token[3].upper()
+        ieee_addr = ":".join(ieee_addr[i : i + 2] for i in range(0, len(ieee_addr), 2))
+
+        rows = self.node_table.rowCount()
+        for r in range(rows):
+            if self.node_table.item(r, 0).text() == ieee_addr:
+                self.node_table.removeRow(r)
+
+    def zcl_data(self, data: str):
+        token = data.split()
+        src_addr = token[4][:-1].upper()
+        cluster_id = token[6][:-1].upper()
+        attr_type = token[8][:-1].upper()
+
+        if cluster_id == "0000":
+            if attr_type == "0001":
+                data = token[10]
+                rows = self.node_table.rowCount()
+                for r in range(rows):
+                    if self.node_table.item(r, 1).text() == src_addr:
+                        self.set_cell(r, 3, data)
+            elif attr_type == "0005":
+                data_len = int(token[10][:-1])
+                data = bytes.fromhex(token[12]).decode("ascii")
+                if data_len == len(data):
+                    rows = self.node_table.rowCount()
+                    for r in range(rows):
+                        if self.node_table.item(r, 1).text() == src_addr:
+                            self.set_cell(r, 2, data)
+
     # Utility ##################################################################
+    def read_data(self, data: str):
+        for char in data:
+            if char == "\n":
+                if "New Node" in self._rx_data:
+                    self.new_node(self._rx_data)
+                elif "Leave Indication" in self._rx_data:
+                    self.leave_indication(self._rx_data)
+                elif "ZCL Attribute Report" in self._rx_data:
+                    self.zcl_data(self._rx_data)
+                elif "DBG" in self._rx_data:
+                    self.zcl_data(self._rx_data)
+                self._rx_data = ""
+            elif char == "\r":
+                continue
+            else:
+                self._rx_data += char
+
+    def set_cell(self, row: int, col: int, data: str):
+        item = QTableWidgetItem(data)
+        item.setTextAlignment(Qt.AlignCenter)
+        self.node_table.setItem(row, col, item)
+
     def enable_ui(self, en: bool):
         self.ctrl_reset_btn.setEnabled(en)
+        self.ctrl_form_btn.setEnabled(en)
+        self.ctrl_steer_btn.setEnabled(en)
         if en is False:
             self.ctrl_reset_btn.setStyleSheet(
                 f"color: {COLOR_WHITE}; background-color: {COLOR_BLACK}; font: bold;"

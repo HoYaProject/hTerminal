@@ -8,11 +8,13 @@ MAX_PORT: int = 200
 class HSerial(QSerialPort):
     connectSignal = pyqtSignal(bool)
     writeSignal = pyqtSignal()
+    readSignal = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
 
         self._is_connect = False
+        self.readyRead.connect(self.read)
 
     def scan_port(self) -> list[str]:
         port_list = []
@@ -43,3 +45,7 @@ class HSerial(QSerialPort):
     def write(self, msg: str):
         super().write(msg.encode("utf-8"))
         self.writeSignal.emit()
+
+    def read(self):
+        data = str(self.readAll(), "utf-8")
+        self.readSignal.emit(data)
