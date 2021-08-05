@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QWidget,
@@ -7,9 +9,11 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
+    QLabel,
+    QTextEdit,
 )
 
-from color import COLOR_BLACK, COLOR_LIGHT_BLACK, COLOR_WHITE
+from color import COLOR_BG, COLOR_BLACK, COLOR_LIGHT_BLACK, COLOR_WHITE
 
 
 class NXP_UI(QWidget):
@@ -30,6 +34,9 @@ class NXP_UI(QWidget):
 
         # Node Information
         self.node_table = QTableWidget()
+
+        # Notification
+        self.noti_te = QTextEdit()
 
         self.init_ui()
         self.enable_ui(False)
@@ -60,19 +67,20 @@ class NXP_UI(QWidget):
 
         # Node Information
         self.node_table.setEnabled(False)
-        self.node_table.setMinimumWidth(400)
+        self.node_table.setFixedHeight(146)
+        self.node_table.setMinimumWidth(430)
         self.node_table.setColumnCount(4)
         self.node_table.setColumnWidth(0, 160)
         self.node_table.setColumnWidth(1, 70)
-        self.node_table.setColumnWidth(2, 100)
-        self.node_table.setColumnWidth(3, 50)
+        self.node_table.setColumnWidth(2, 110)
+        self.node_table.setColumnWidth(3, 60)
         self.node_table.setHorizontalHeaderLabels(
             ["IEEE Addr", "Nwk Addr", "Description", "Version"]
         )
         self.node_table.horizontalHeader().setStretchLastSection(True)
         self.node_table.verticalHeader().setDefaultAlignment(Qt.AlignCenter)
         self.node_table.setStyleSheet(
-            f"color: {COLOR_WHITE}; background-color: {COLOR_BLACK}; gridline-color: {COLOR_LIGHT_BLACK}; QTableCornerButton::section {{background-color: {COLOR_BLACK};}}"
+            f"color: {COLOR_WHITE}; background-color: {COLOR_BG}; gridline-color: {COLOR_LIGHT_BLACK};"
         )
         self.node_table.horizontalHeader().setStyleSheet(
             f"QHeaderView::section {{color: {COLOR_WHITE}; background-color: {COLOR_BLACK}; font: bold; border: 1px solid {COLOR_LIGHT_BLACK};}}"
@@ -80,6 +88,20 @@ class NXP_UI(QWidget):
         self.node_table.verticalHeader().setStyleSheet(
             f"QHeaderView::section {{color: {COLOR_WHITE}; background-color: {COLOR_BLACK}; font: bold; border: 1px solid {COLOR_LIGHT_BLACK};}}"
         )
+
+        # Notification
+        time_label = QLabel("Time")
+        time_label.setFixedWidth(120)
+        time_label.setAlignment(Qt.AlignCenter)
+        src_label = QLabel("Source")
+        src_label.setFixedWidth(50)
+        src_label.setAlignment(Qt.AlignCenter)
+        msg_label = QLabel("     Message")
+
+        self.noti_te.setReadOnly(True)
+        self.noti_te.setFontFamily("consolas")
+        self.noti_te.setFontPointSize(8)
+        self.noti_te.setStyleSheet(f"border: 2px solid {COLOR_LIGHT_BLACK};")
 
         # Layout --------------------------------------------------------------#
         ctrl_hlayout = QHBoxLayout()
@@ -97,10 +119,23 @@ class NXP_UI(QWidget):
         node_group = QGroupBox("Node information")
         node_group.setLayout(node_hlayout)
 
+        noti_hlayout = QHBoxLayout()
+        noti_hlayout.addWidget(time_label)
+        noti_hlayout.addWidget(src_label)
+        noti_hlayout.addWidget(msg_label)
+
+        noti_vlayout = QVBoxLayout()
+        noti_vlayout.addLayout(noti_hlayout)
+        noti_vlayout.addWidget(self.noti_te)
+
+        noti_group = QGroupBox("Notification")
+        noti_group.setLayout(noti_vlayout)
+
         vlayout = QVBoxLayout()
         vlayout.addWidget(ctrl_group)
         vlayout.addWidget(node_group)
-        vlayout.addStretch(1)
+        vlayout.addWidget(noti_group)
+        vlayout.setStretchFactor(noti_group, 1)
 
         self.setLayout(vlayout)
 
@@ -123,13 +158,14 @@ class NXP_UI(QWidget):
 
         rows = self.node_table.rowCount()
         is_exist = False
-        for r in range(rows):
-            if self.node_table.item(r, 0).text() == ieee_addr:
-                item = QTableWidgetItem(nwk_addr)
-                item.setTextAlignment(Qt.AlignCenter)
-                self.node_table.setItem(r, 1, item)
-                is_exist = True
-                break
+        if rows > 0:
+            for r in range(rows):
+                if self.node_table.item(r, 0).text() == ieee_addr:
+                    item = QTableWidgetItem(nwk_addr)
+                    item.setTextAlignment(Qt.AlignCenter)
+                    self.node_table.setItem(r, 1, item)
+                    is_exist = True
+                    break
         if is_exist == False:
             self.node_table.insertRow(rows)
             self.set_cell(rows, 0, ieee_addr)
@@ -141,9 +177,10 @@ class NXP_UI(QWidget):
         ieee_addr = ":".join(ieee_addr[i : i + 2] for i in range(0, len(ieee_addr), 2))
 
         rows = self.node_table.rowCount()
-        for r in range(rows):
-            if self.node_table.item(r, 0).text() == ieee_addr:
-                self.node_table.removeRow(r)
+        if rows > 0:
+            for r in range(rows):
+                if self.node_table.item(r, 0).text() == ieee_addr:
+                    self.node_table.removeRow(r)
 
     def zcl_data(self, data: str):
         token = data.split()
@@ -153,19 +190,37 @@ class NXP_UI(QWidget):
 
         if cluster_id == "0000":
             if attr_type == "0001":
-                data = token[10]
+                data = str(int(token[10], 16))
                 rows = self.node_table.rowCount()
-                for r in range(rows):
-                    if self.node_table.item(r, 1).text() == src_addr:
-                        self.set_cell(r, 3, data)
+                if rows > 0:
+                    for r in range(rows):
+                        if self.node_table.item(r, 1).text() == src_addr:
+                            self.set_cell(r, 3, data)
             elif attr_type == "0005":
                 data_len = int(token[10][:-1])
                 data = bytes.fromhex(token[12]).decode("ascii")
                 if data_len == len(data):
                     rows = self.node_table.rowCount()
-                    for r in range(rows):
-                        if self.node_table.item(r, 1).text() == src_addr:
-                            self.set_cell(r, 2, data)
+                    if rows > 0:
+                        for r in range(rows):
+                            if self.node_table.item(r, 1).text() == src_addr:
+                                self.set_cell(r, 2, data)
+        elif cluster_id == "0400":
+            if attr_type == "0000":
+                data = int(token[10], 16)
+                self.notification(
+                    src_addr, f"{data} ({round(pow(10, (data - 1) / 10000), 6)} lx)"
+                )
+        elif cluster_id == "FCC0":
+            if attr_type == "0112":
+                data = token[10]
+                self.notification(src_addr, f"{data[:4]} {data[4:]}")
+
+    # Notification #############################################################
+    def notification(self, src_addr: str, msg: str):
+        now = datetime.now()
+        msg_time = now.strftime("%Y-%m-%d %H:%M:%S")
+        self.noti_te.append(f"[{msg_time}] {src_addr}  :  {msg}")
 
     # Utility ##################################################################
     def read_data(self, data: str):
@@ -176,8 +231,6 @@ class NXP_UI(QWidget):
                 elif "Leave Indication" in self._rx_data:
                     self.leave_indication(self._rx_data)
                 elif "ZCL Attribute Report" in self._rx_data:
-                    self.zcl_data(self._rx_data)
-                elif "DBG" in self._rx_data:
                     self.zcl_data(self._rx_data)
                 self._rx_data = ""
             elif char == "\r":

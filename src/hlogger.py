@@ -16,9 +16,9 @@ class HLogger:
                 if any(word in self._msg for word in DEBUG_LIST):
                     self._log.setTextColor(QColor(240, 198, 116))
                 elif any(word in self._msg.lower() for word in GOOD_LIST):
-                    self._log.setTextColor(QColor(181, 189, 104))
+                    self._log.setTextColor(QColor(140, 148, 64))
                 elif any(word in self._msg.lower() for word in BAD_LIST):
-                    self._log.setTextColor(QColor(204, 102, 102))
+                    self._log.setTextColor(QColor(165, 66, 66))
                 else:
                     self._log.setTextColor(QColor(197, 200, 198))
                 self._log.append(self._msg)
