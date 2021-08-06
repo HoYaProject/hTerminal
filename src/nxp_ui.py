@@ -29,8 +29,9 @@ class NXP_UI(QWidget):
 
         # Control
         self.ctrl_reset_btn = QPushButton("Reset")
-        self.ctrl_form_btn = QPushButton("Format")
+        self.ctrl_form_btn = QPushButton("Form")
         self.ctrl_steer_btn = QPushButton("Permit")
+        self.ctrl_child_btn = QPushButton("Child")
 
         # Node Information
         self.node_table = QTableWidget()
@@ -65,17 +66,25 @@ class NXP_UI(QWidget):
         )
         self.ctrl_steer_btn.setToolTip("Permit joining")
 
+        self.ctrl_child_btn.clicked.connect(self.ctrl_get_children)
+        self.ctrl_child_btn.setFixedWidth(80)
+        self.ctrl_child_btn.setStyleSheet(
+            f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
+        )
+        self.ctrl_child_btn.setToolTip("Get children")
+
         # Node Information
         self.node_table.setEnabled(False)
         self.node_table.setFixedHeight(146)
-        self.node_table.setMinimumWidth(430)
-        self.node_table.setColumnCount(4)
+        self.node_table.setMinimumWidth(490)
+        self.node_table.setColumnCount(5)
         self.node_table.setColumnWidth(0, 160)
-        self.node_table.setColumnWidth(1, 70)
-        self.node_table.setColumnWidth(2, 110)
-        self.node_table.setColumnWidth(3, 60)
+        self.node_table.setColumnWidth(1, 80)
+        self.node_table.setColumnWidth(2, 50)
+        self.node_table.setColumnWidth(3, 110)
+        self.node_table.setColumnWidth(4, 60)
         self.node_table.setHorizontalHeaderLabels(
-            ["IEEE Addr", "Nwk Addr", "Description", "Version"]
+            ["IEEE Addr", "Nwk Addr", "Type", "Description", "Version"]
         )
         self.node_table.horizontalHeader().setStretchLastSection(True)
         self.node_table.verticalHeader().setDefaultAlignment(Qt.AlignCenter)
@@ -108,6 +117,7 @@ class NXP_UI(QWidget):
         ctrl_hlayout.addWidget(self.ctrl_reset_btn)
         ctrl_hlayout.addWidget(self.ctrl_form_btn)
         ctrl_hlayout.addWidget(self.ctrl_steer_btn)
+        ctrl_hlayout.addWidget(self.ctrl_child_btn)
         ctrl_hlayout.addStretch(1)
 
         ctrl_group = QGroupBox("Network Control")
@@ -149,27 +159,37 @@ class NXP_UI(QWidget):
     def ctrl_steer(self):
         self._serial.write("steer\n")
 
+    def ctrl_get_children(self):
+        self._serial.write("child\n")
+
     # Node Information #########################################################
     def new_node(self, data: str):
         token = data.split()
-        ieee_addr = token[3].split("-")[0].upper()
+        ieee_addr = token[3].upper()
         ieee_addr = ":".join(ieee_addr[i : i + 2] for i in range(0, len(ieee_addr), 2))
-        nwk_addr = token[3].split("-")[1].upper()
+        nwk_addr = token[4].upper()
+        type = int(token[5], 16)
+        if type & 0x01:
+            node_type = "ZC"
+        elif type & 0x20:
+            node_type = "ZR"
+        else:
+            node_type = "ZED"
 
         rows = self.node_table.rowCount()
         is_exist = False
         if rows > 0:
             for r in range(rows):
                 if self.node_table.item(r, 0).text() == ieee_addr:
-                    item = QTableWidgetItem(nwk_addr)
-                    item.setTextAlignment(Qt.AlignCenter)
-                    self.node_table.setItem(r, 1, item)
+                    self.set_cell(r, 1, nwk_addr)
+                    self.set_cell(r, 2, node_type)
                     is_exist = True
                     break
-        if is_exist == False:
+        if not is_exist:
             self.node_table.insertRow(rows)
             self.set_cell(rows, 0, ieee_addr)
             self.set_cell(rows, 1, nwk_addr)
+            self.set_cell(rows, 2, node_type)
 
     def leave_indication(self, data: str):
         token = data.split()
@@ -181,6 +201,34 @@ class NXP_UI(QWidget):
             for r in range(rows):
                 if self.node_table.item(r, 0).text() == ieee_addr:
                     self.node_table.removeRow(r)
+
+    def zdp_mgmt_lqi_rsp(self, data: str):
+        token = data.split()
+        ieee_addr = token[2].upper()
+        ieee_addr = ":".join(ieee_addr[i : i + 2] for i in range(0, len(ieee_addr), 2))
+        nwk_addr = token[3].upper()
+        type = int(token[4], 16)
+        if type == 0:
+            node_type = "ZC"
+        elif type == 1:
+            node_type = "ZR"
+        else:
+            node_type = "ZED"
+
+        rows = self.node_table.rowCount()
+        is_exist = False
+        if rows > 0:
+            for r in range(rows):
+                if self.node_table.item(r, 0).text() == ieee_addr:
+                    self.set_cell(r, 1, nwk_addr)
+                    self.set_cell(r, 2, node_type)
+                    is_exist = True
+                    break
+        if not is_exist:
+            self.node_table.insertRow(rows)
+            self.set_cell(rows, 0, ieee_addr)
+            self.set_cell(rows, 1, nwk_addr)
+            self.set_cell(rows, 2, node_type)
 
     def zcl_data(self, data: str):
         token = data.split()
@@ -195,7 +243,7 @@ class NXP_UI(QWidget):
                 if rows > 0:
                     for r in range(rows):
                         if self.node_table.item(r, 1).text() == src_addr:
-                            self.set_cell(r, 3, data)
+                            self.set_cell(r, 4, data)
             elif attr_type == "0005":
                 data_len = int(token[10][:-1])
                 data = bytes.fromhex(token[12]).decode("ascii")
@@ -204,7 +252,7 @@ class NXP_UI(QWidget):
                     if rows > 0:
                         for r in range(rows):
                             if self.node_table.item(r, 1).text() == src_addr:
-                                self.set_cell(r, 2, data)
+                                self.set_cell(r, 3, data)
         elif cluster_id == "0400":
             if attr_type == "0000":
                 data = int(token[10], 16)
@@ -230,6 +278,8 @@ class NXP_UI(QWidget):
                     self.new_node(self._rx_data)
                 elif "Leave Indication" in self._rx_data:
                     self.leave_indication(self._rx_data)
+                elif "MgmtLqiRsp" in self._rx_data:
+                    self.zdp_mgmt_lqi_rsp(self._rx_data)
                 elif "ZCL Attribute Report" in self._rx_data:
                     self.zcl_data(self._rx_data)
                 self._rx_data = ""
@@ -247,6 +297,7 @@ class NXP_UI(QWidget):
         self.ctrl_reset_btn.setEnabled(en)
         self.ctrl_form_btn.setEnabled(en)
         self.ctrl_steer_btn.setEnabled(en)
+        self.ctrl_child_btn.setEnabled(en)
         if en is False:
             self.ctrl_reset_btn.setStyleSheet(
                 f"color: {COLOR_WHITE}; background-color: {COLOR_BLACK}; font: bold;"
@@ -257,6 +308,9 @@ class NXP_UI(QWidget):
             self.ctrl_steer_btn.setStyleSheet(
                 f"color: {COLOR_WHITE}; background-color: {COLOR_BLACK}; font: bold;"
             )
+            self.ctrl_child_btn.setStyleSheet(
+                f"color: {COLOR_WHITE}; background-color: {COLOR_BLACK}; font: bold;"
+            )
         else:
             self.ctrl_reset_btn.setStyleSheet(
                 f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
@@ -265,5 +319,8 @@ class NXP_UI(QWidget):
                 f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
             )
             self.ctrl_steer_btn.setStyleSheet(
+                f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
+            )
+            self.ctrl_child_btn.setStyleSheet(
                 f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
             )
