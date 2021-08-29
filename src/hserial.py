@@ -47,5 +47,5 @@ class HSerial(QSerialPort):
         self.writeSignal.emit()
 
     def read(self):
-        data = str(self.readAll(), "utf-8")
+        data = str(self.readAll(), "utf-8", errors="ignore")
         self.readSignal.emit(data)

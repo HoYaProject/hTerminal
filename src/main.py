@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
     QApplication,
     QHBoxLayout,
     QMainWindow,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -14,6 +15,7 @@ from color import COLOR_BG, COLOR_FG
 from hserial import HSerial
 from serial_ui import Serial_UI
 from nxp_ui import NXP_UI
+from merlotlab_ui import MerlotLab_UI
 
 
 MAJOR_VERSION = 1
@@ -33,16 +35,21 @@ class HTerminal(QMainWindow):
         self.load_settings()
 
     def init_ui(self):
+        vlayout = QVBoxLayout()
+        vlayout.addWidget(NXP_UI(self.serial))
+        vlayout.addWidget(MerlotLab_UI(self.serial))
+
         hlayout = QHBoxLayout()
         hlayout.addWidget(Serial_UI(self.serial))
-        hlayout.addWidget(NXP_UI(self.serial))
+        hlayout.addLayout(vlayout)
+
         central_widget = QWidget()
         central_widget.setLayout(hlayout)
         self.setCentralWidget(central_widget)
 
         self.setWindowIcon(QIcon(self.resource_path("./resource/favicon.ico")))
         self.setWindowTitle(
-            "hTerminal for NXP v{}.{}.{}".format(
+            "hTerminal for MerlotLab v{}.{}.{}".format(
                 MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION
             )
         )

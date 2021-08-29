@@ -30,7 +30,7 @@ class NXP_UI(QWidget):
         # Control
         self.ctrl_reset_btn = QPushButton("Reset")
         self.ctrl_form_btn = QPushButton("Form")
-        self.ctrl_steer_btn = QPushButton("Permit")
+        self.ctrl_permit_btn = QPushButton("Permit")
         self.ctrl_child_btn = QPushButton("Child")
 
         # Node Information
@@ -59,12 +59,12 @@ class NXP_UI(QWidget):
         )
         self.ctrl_form_btn.setToolTip("Form a new network")
 
-        self.ctrl_steer_btn.clicked.connect(self.ctrl_steer)
-        self.ctrl_steer_btn.setFixedWidth(80)
-        self.ctrl_steer_btn.setStyleSheet(
+        self.ctrl_permit_btn.clicked.connect(self.ctrl_permit)
+        self.ctrl_permit_btn.setFixedWidth(80)
+        self.ctrl_permit_btn.setStyleSheet(
             f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
         )
-        self.ctrl_steer_btn.setToolTip("Permit joining")
+        self.ctrl_permit_btn.setToolTip("Permit joining")
 
         self.ctrl_child_btn.clicked.connect(self.ctrl_get_children)
         self.ctrl_child_btn.setFixedWidth(80)
@@ -116,7 +116,7 @@ class NXP_UI(QWidget):
         ctrl_hlayout = QHBoxLayout()
         ctrl_hlayout.addWidget(self.ctrl_reset_btn)
         ctrl_hlayout.addWidget(self.ctrl_form_btn)
-        ctrl_hlayout.addWidget(self.ctrl_steer_btn)
+        ctrl_hlayout.addWidget(self.ctrl_permit_btn)
         ctrl_hlayout.addWidget(self.ctrl_child_btn)
         ctrl_hlayout.addStretch(1)
 
@@ -156,8 +156,8 @@ class NXP_UI(QWidget):
     def ctrl_form(self):
         self._serial.write("form\n")
 
-    def ctrl_steer(self):
-        self._serial.write("steer\n")
+    def ctrl_permit(self):
+        self._serial.write("permit\n")
 
     def ctrl_get_children(self):
         self._serial.write("child\n")
@@ -296,7 +296,7 @@ class NXP_UI(QWidget):
     def enable_ui(self, en: bool):
         self.ctrl_reset_btn.setEnabled(en)
         self.ctrl_form_btn.setEnabled(en)
-        self.ctrl_steer_btn.setEnabled(en)
+        self.ctrl_permit_btn.setEnabled(en)
         self.ctrl_child_btn.setEnabled(en)
         if en is False:
             self.ctrl_reset_btn.setStyleSheet(
@@ -305,7 +305,7 @@ class NXP_UI(QWidget):
             self.ctrl_form_btn.setStyleSheet(
                 f"color: {COLOR_WHITE}; background-color: {COLOR_BLACK}; font: bold;"
             )
-            self.ctrl_steer_btn.setStyleSheet(
+            self.ctrl_permit_btn.setStyleSheet(
                 f"color: {COLOR_WHITE}; background-color: {COLOR_BLACK}; font: bold;"
             )
             self.ctrl_child_btn.setStyleSheet(
@@ -318,7 +318,7 @@ class NXP_UI(QWidget):
             self.ctrl_form_btn.setStyleSheet(
                 f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
             )
-            self.ctrl_steer_btn.setStyleSheet(
+            self.ctrl_permit_btn.setStyleSheet(
                 f"color: {COLOR_BLACK}; background-color: {COLOR_WHITE}; font: bold;"
             )
             self.ctrl_child_btn.setStyleSheet(
